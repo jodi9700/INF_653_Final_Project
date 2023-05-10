@@ -87,37 +87,44 @@ const getFunFact = async (req, res)=>{
 
 // ../states/:state/funfact
 const createFunFact = async (req, res) => {
-  const code = req.params.state.toUpperCase();
-  const funfact = req.body.funfacts;
-  const state = data.states.find( st => st.code === code); 
+    const code = req.params.state.toUpperCase();
+    const funfact = req.body.funfacts;
 
-  // no funfact entered
-  if(!funfact) {
-      return res.status(400).json({ 'message': 'State fun facts value required' });
-  }
+    // no funfact entered
+    if(!funfact) {
+        return res.status(400).json({ 'message': 'State fun facts value required' });
+    }
   
-  // funfact is not an array
-  else if(!Array.isArray(funfact)) { 
-      return res.status(400).json({ 'message': 'State fun facts value must be an array' });
-  }
+    // funfact is not an array
+    else if(!Array.isArray(funfact)) { 
+        return res.status(400).json({ 'message': 'State fun facts value must be an array' });
+    }
 
-  const stateInDB = await State.findOne({ stateCode: code }).exec();
-  
-  // state record not yet in DB
-  if (!stateInDB) {
-      const result = await State.create({
-          stateCode: code,
-          funfacts: funfact
-      });
-      res.status(201).json(result);
-  } 
+    const stateInDB = await State.findOne({ stateCode: code }).exec();
+    
+      // state record not yet in DB
+      if (!stateInDB) {
+        try {
+          const result = await State.create({
+            stateCode: code,
+            funfacts: funfact
+          });
+          res.status(201).json(result);
+        } catch (err) {
+          console.log("Create failed: " + err);
+        }
+      }
 
-  // state record is in DB
-  else {
-      stateInDB.funfacts = stateInDB.funfacts.concat(funfact);
-      await stateInDB.save();
-  }
-  res.status(201).json(stateInDB);
+    // state record is in DB
+    else {
+        try {
+        stateInDB.funfacts = stateInDB.funfacts.concat(funfact);
+        const result = await stateInDB.save();
+        res.status(201).json(result);
+        } catch (err) {
+          console.log("Save failed: " + err);
+        }
+    }
 }
 
 // ../states/:state/funfact
@@ -126,7 +133,7 @@ const updateFunFact = async (req, res) => {
     const index = req.body.index;
     const x = index - 1;
 
-    const stateInDB = await State.findOne({ stateCode: code });
+    const stateInDB = await State.findOne({ stateCode: code }).exec();
   
     // no index entered
     if (!index) {
@@ -147,11 +154,15 @@ const updateFunFact = async (req, res) => {
     else if (index > stateInDB.funfacts.length) {
       return res.status(404).json({ 'message': `No Fun Fact found at that index for ${req.state.state}` });
     }
-  
-    stateInDB.funfacts.splice(x, 1, req.body.funfact);
-    const operation = await stateInDB.save();
-  
-    res.status(200).json(operation);
+
+    try {
+      stateInDB.funfacts.splice(x, 1, req.body.funfact);
+      const operation = await stateInDB.save();
+    
+      res.status(200).json(operation);
+    } catch (err) {
+      console.log("Update failed: " + err);
+    }
 }
 
 // ../states/:state/funfact
@@ -160,7 +171,7 @@ const deleteFunFact = async (req, res) => {
     const index = req.body.index;
     const x = index - 1;
 
-    const stateInDB = await State.findOne({ stateCode: code });
+    const stateInDB = await State.findOne({ stateCode: code }).exec();
   
     // no index entered
     if (!index) {
@@ -176,11 +187,14 @@ const deleteFunFact = async (req, res) => {
     else if (index > stateInDB.funfacts.length) {
         return res.status(404).json({ 'message': `No Fun Fact found at that index for ${req.state.state}` });
     }
-
-    stateInDB.funfacts.splice(x, 1);
-    await stateInDB.save();
-  
-    res.status(200).json(stateInDB);
+    try {
+      stateInDB.funfacts.splice(x, 1);
+      await stateInDB.save();
+    
+      res.status(200).json(stateInDB);
+    } catch (err) {
+      console.log("Delete failed: " + err);
+    }
 }
 
 module.exports = { 
