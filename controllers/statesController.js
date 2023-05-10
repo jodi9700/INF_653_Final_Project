@@ -7,34 +7,56 @@ const data = {
 
 // ../states/
 const getAllStates = async (req, res)=> {
-    let allStates;
+    let statesList;
 
     // ../states/?contig=true
     // Return only contiguous 48
     if(req.query.contig === 'true') {
-        allStates = data.states.filter(st => st.code !== "AK" && st.code !== "HI");
+        statesList = data.states.filter(st => st.code !== "AK" && st.code !== "HI");
     }
 
     // ../states/?contig=true
     // Return non-contiguous 2
     else if (req.query.contig === 'false') {
-        allStates = data.states.filter( st => st.code === "AK" || st.code === "HI");     
+        statesList = data.states.filter( st => st.code === "AK" || st.code === "HI");     
     }
 
     // Return all 50
     else {
-        allStates = data.states;  
+        statesList = data.states;  
     }     
-
+    
+    // database data
+    for(let state of statesList) {
+      try {
+          const stateExists = await State.findOne({stateCode: state.code}).exec();
+          if (stateExists.funfacts) {
+              state.funfacts = [...stateExists.funfacts];
+          }
+      } catch (err) {
+          console.log(err);
+          console.log("Get failed: " + err);
+      }
+    }
     // ../states/
-    res.json(allStates);
+    res.json(statesList);
+
 }
 
 // ../states/:state
-const getState = (req, res)=> {
+const getState = async (req, res)=> {
     const code = req.params.state.toUpperCase();
     const state = data.states.find( st => st.code === code);
 
+    try {
+      const stateExists = await State.findOne({stateCode: state.code}).exec();
+      if (stateExists.funfacts) {
+          state.funfacts = [...stateExists.funfacts];
+      }
+    } catch (err) {
+        console.log(err);
+        console.log("Get failed: " + err);
+    }
     res.json(state);
 }
 
@@ -81,7 +103,7 @@ const getFunFact = async (req, res)=>{
     } 
     else {
         const randomFact = stateInDB.funfacts[Math.floor((Math.random()*stateInDB.funfacts.length))];
-        res.status(201).json({ 'state': state.state, 'funfact': randomFact });
+        res.status(201).json({ 'funfact': randomFact });
     }
 }
 
@@ -130,6 +152,7 @@ const createFunFact = async (req, res) => {
 // ../states/:state/funfact
 const updateFunFact = async (req, res) => {
     const code = req.params.state.toUpperCase();
+    const state = data.states.find( st => st.code === code);
     const index = req.body.index;
     const x = index - 1;
 
@@ -147,12 +170,12 @@ const updateFunFact = async (req, res) => {
   
     // state record not in DB
     else if (!stateInDB) {
-      return res.status(404).json({ 'message': `No Fun Facts found for ${req.state.state}` });
+      return res.status(404).json({ 'message': `No Fun Facts found for ${state.state}` });
     }
   
     // index value not in array
     else if (index > stateInDB.funfacts.length) {
-      return res.status(404).json({ 'message': `No Fun Fact found at that index for ${req.state.state}` });
+      return res.status(404).json({ 'message': `No Fun Fact found at that index for ${state.state}` });
     }
 
     try {
@@ -168,6 +191,7 @@ const updateFunFact = async (req, res) => {
 // ../states/:state/funfact
 const deleteFunFact = async (req, res) => {
     const code = req.params.state.toUpperCase();
+    const state = data.states.find( st => st.code === code);
     const index = req.body.index;
     const x = index - 1;
 
@@ -180,12 +204,12 @@ const deleteFunFact = async (req, res) => {
     
     // state record not in DB
     else if (!stateInDB) {
-        return res.status(404).json({ 'message': `No Fun Facts found for ${req.state.state}` });
+        return res.status(404).json({ 'message': `No Fun Facts found for ${state.state}` });
     }
     
     // index value not in array
     else if (index > stateInDB.funfacts.length) {
-        return res.status(404).json({ 'message': `No Fun Fact found at that index for ${req.state.state}` });
+        return res.status(404).json({ 'message': `No Fun Fact found at that index for ${state.state}` });
     }
     try {
       stateInDB.funfacts.splice(x, 1);

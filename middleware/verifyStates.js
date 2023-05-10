@@ -24,7 +24,7 @@ const verifyState = () => {
         const state = data.states.find( st => st.code === code);
 
         if(!state){
-            return res.status(404).json({ 'message': 'Invalid state abbreviation' });
+            return res.status(404).json({ 'message': 'Invalid state abbreviation parameter' });
         }
         next();
     }
